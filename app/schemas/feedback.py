@@ -1,12 +1,18 @@
-from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import date
+
+from pydantic import BaseModel, Field
+
 
 class FeedbackCreate(BaseModel):
-    comment: str = Field(min_length=1, max_length=300)
+    rating: int = Field(ge=1, le=5)
+    comment: Optional[str] = None
     appointment_id: int
 
-class FeedbackResponse(FeedbackCreate):
+
+class FeedbackResponse(BaseModel):
     id: int
-    sent_date: date
+    rating: int
+    comment: Optional[str] = None
+    appointment_id: int
+
     model_config = {"from_attributes": True}

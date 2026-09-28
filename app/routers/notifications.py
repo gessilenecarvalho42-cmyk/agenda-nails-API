@@ -33,6 +33,7 @@ def create_notification(
         )
 
     new_notification = Notification(
+        type=notification.type,
         message=notification.message,
         appointment_id=notification.appointment_id,
         read=False
