@@ -5,7 +5,6 @@ from app.database import get_db
 from app.models.client import Client
 from app.schemas.client import ClientCreate, ClientUpdate, ClientResponse
 
-
 router = APIRouter(
     prefix="/api/clients",
     tags=["Clients"]
@@ -21,11 +20,9 @@ def create_client(
     client: ClientCreate,
     db: Session = Depends(get_db)
 ):
-    existing_client = (
-        db.query(Client)
-        .filter(Client.phone == client.phone)
-        .first()
-    )
+    existing_client = db.query(Client).filter(
+        Client.phone == client.phone
+    ).first()
 
     if existing_client:
         raise HTTPException(
@@ -65,11 +62,9 @@ def get_client(
     client_id: int,
     db: Session = Depends(get_db)
 ):
-    client = (
-        db.query(Client)
-        .filter(Client.id == client_id)
-        .first()
-    )
+    client = db.query(Client).filter(
+        Client.id == client_id
+    ).first()
 
     if not client:
         raise HTTPException(
@@ -89,11 +84,9 @@ def update_client(
     client_data: ClientUpdate,
     db: Session = Depends(get_db)
 ):
-    client = (
-        db.query(Client)
-        .filter(Client.id == client_id)
-        .first()
-    )
+    client = db.query(Client).filter(
+        Client.id == client_id
+    ).first()
 
     if not client:
         raise HTTPException(
@@ -102,14 +95,10 @@ def update_client(
         )
 
     if client_data.phone is not None:
-        existing_client = (
-            db.query(Client)
-            .filter(
-                Client.phone == client_data.phone,
-                Client.id != client_id
-            )
-            .first()
-        )
+        existing_client = db.query(Client).filter(
+            Client.phone == client_data.phone,
+            Client.id != client_id
+        ).first()
 
         if existing_client:
             raise HTTPException(
@@ -125,6 +114,36 @@ def update_client(
 
     if client_data.consent_whatsapp is not None:
         client.consent_whatsapp = client_data.consent_whatsapp
+
+    db.commit()
+    db.refresh(client)
+
+    return client
+
+
+@router.delete(
+    "/{client_id}",
+    response_model=ClientResponse
+)
+def delete_client(
+    client_id: int,
+    db: Session = Depends(get_db)
+):
+    client = db.query(Client).filter(
+        Client.id == client_id
+    ).first()
+
+    if not client:
+        raise HTTPException(
+            status_code=404,
+            detail="Cliente não encontrado."
+        )
+
+    # Anonimização dos dados pessoais conforme LGPD
+    client.name = "Cliente anonimizado"
+    client.phone = f"ANONIMIZADO-{client.id}"
+    client.consent_whatsapp = False
+    client.active = False
 
     db.commit()
     db.refresh(client)

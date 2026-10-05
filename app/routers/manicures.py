@@ -98,3 +98,34 @@ def update_manicure(
     db.refresh(manicure)
 
     return manicure
+
+
+@router.delete(
+    "/{manicure_id}",
+    response_model=ManicureResponse
+)
+def delete_manicure(
+    manicure_id: int,
+    db: Session = Depends(get_db)
+):
+    manicure = (
+        db.query(Manicure)
+        .filter(Manicure.id == manicure_id)
+        .first()
+    )
+
+    if not manicure:
+        raise HTTPException(
+            status_code=404,
+            detail="Manicure não encontrada."
+        )
+
+    # Anonimização dos dados conforme LGPD
+    manicure.name = "Manicure anonimizada"
+    manicure.phone = f"ANONIMIZADO-{manicure.id}"
+    manicure.active = False
+
+    db.commit()
+    db.refresh(manicure)
+
+    return manicure

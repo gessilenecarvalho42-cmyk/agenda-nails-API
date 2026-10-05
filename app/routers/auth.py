@@ -1,4 +1,4 @@
-import hashlib
+import bcrypt
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -15,7 +15,17 @@ router = APIRouter(
 
 
 def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return bcrypt.hashpw(
+        password.encode("utf-8"),
+        bcrypt.gensalt()
+    ).decode("utf-8")
+
+
+def verify_password(password: str, hashed_password: str) -> bool:
+    return bcrypt.checkpw(
+        password.encode("utf-8"),
+        hashed_password.encode("utf-8")
+    )
 
 
 @router.post(
@@ -69,7 +79,10 @@ def login(
             detail="Telefone ou senha inválidos."
         )
 
-    if user.password_hash != hash_password(login_data.password):
+    if not verify_password(
+        login_data.password,
+        user.password_hash
+    ):
         raise HTTPException(
             status_code=401,
             detail="Telefone ou senha inválidos."

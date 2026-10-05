@@ -105,3 +105,29 @@ def update_service(
     db.refresh(service)
 
     return service
+
+
+@router.delete(
+    "/{service_id}",
+    response_model=ServiceResponse
+)
+def delete_service(
+    service_id: int,
+    db: Session = Depends(get_db)
+):
+    service = (
+        db.query(Service)
+        .filter(Service.id == service_id)
+        .first()
+    )
+
+    if not service:
+        raise HTTPException(
+            status_code=404,
+            detail="Serviço não encontrado."
+        )
+
+    db.delete(service)
+    db.commit()
+
+    return service
