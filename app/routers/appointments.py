@@ -54,6 +54,20 @@ def create_appointment(
             detail="Serviço não encontrado."
         )
 
+    # Verifica se o horário já está ocupado
+    existing_appointment = db.query(Appointment).filter(
+        Appointment.manicure_id == appointment.manicure_id,
+        Appointment.date == appointment.date,
+        Appointment.time == appointment.time,
+        Appointment.status != "CANCELADO"
+    ).first()
+
+    if existing_appointment:
+        raise HTTPException(
+            status_code=409,
+            detail="Horário indisponível. A manicure já possui um agendamento nesse horário."
+        )
+
     new_appointment = Appointment(
         date=appointment.date,
         time=appointment.time,
@@ -97,5 +111,37 @@ def get_appointment(
             status_code=404,
             detail="Agendamento não encontrado."
         )
+
+    return appointment
+
+
+@router.put(
+    "/{appointment_id}/cancelar",
+    response_model=AppointmentResponse
+)
+def cancel_appointment(
+    appointment_id: int,
+    db: Session = Depends(get_db)
+):
+    appointment = db.query(Appointment).filter(
+        Appointment.id == appointment_id
+    ).first()
+
+    if not appointment:
+        raise HTTPException(
+            status_code=404,
+            detail="Agendamento não encontrado."
+        )
+
+    if appointment.status == "CANCELADO":
+        raise HTTPException(
+            status_code=400,
+            detail="O agendamento já está cancelado."
+        )
+
+    appointment.status = "CANCELADO"
+
+    db.commit()
+    db.refresh(appointment)
 
     return appointment

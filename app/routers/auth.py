@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
-from app.schemas.user import UserCreate, UserResponse
+from app.schemas.user import UserCreate, UserResponse, LoginRequest
 
 
 router = APIRouter(
@@ -28,17 +28,17 @@ def register(
     db: Session = Depends(get_db)
 ):
     existing_user = db.query(User).filter(
-        User.email == user.email
+        User.phone == user.phone
     ).first()
 
     if existing_user:
         raise HTTPException(
             status_code=400,
-            detail="E-mail já cadastrado."
+            detail="Telefone já cadastrado."
         )
 
     new_user = User(
-        email=user.email,
+        phone=user.phone,
         password_hash=hash_password(user.password),
         role=user.role,
         client_id=user.client_id
@@ -49,3 +49,30 @@ def register(
     db.refresh(new_user)
 
     return new_user
+
+
+@router.post(
+    "/login",
+    response_model=UserResponse
+)
+def login(
+    login_data: LoginRequest,
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(
+        User.phone == login_data.phone
+    ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Telefone ou senha inválidos."
+        )
+
+    if user.password_hash != hash_password(login_data.password):
+        raise HTTPException(
+            status_code=401,
+            detail="Telefone ou senha inválidos."
+        )
+
+    return user
